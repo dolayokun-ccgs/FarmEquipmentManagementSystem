@@ -20,6 +20,7 @@ export const getAllEquipment = async (
       condition,
       isAvailable,
       search,
+      tags,
     } = req.query;
 
     const skip = (Number(page) - 1) * Number(limit);
@@ -47,6 +48,11 @@ export const getAllEquipment = async (
 
     if (isAvailable !== undefined) {
       where.isAvailable = isAvailable === 'true';
+    }
+
+    if (tags) {
+      // Filter by tags - tags is a JSON string array, check if it contains the requested tag
+      where.tags = { contains: tags as string };
     }
 
     if (search) {
@@ -221,6 +227,7 @@ export const createEquipment = async (
       longitude,
       images,
       specifications,
+      tags,
     } = req.body;
 
     // Validate required fields
@@ -263,6 +270,7 @@ export const createEquipment = async (
         longitude: longitude ? Number(longitude) : null,
         images: images || null,
         specifications: specifications || null,
+        tags: tags || null,
       },
       include: {
         category: true,
@@ -351,6 +359,7 @@ export const updateEquipment = async (
       isAvailable,
       images,
       specifications,
+      tags,
     } = req.body;
 
     // Update equipment
@@ -372,6 +381,7 @@ export const updateEquipment = async (
         ...(isAvailable !== undefined && { isAvailable }),
         ...(images !== undefined && { images }),
         ...(specifications !== undefined && { specifications }),
+        ...(tags !== undefined && { tags }),
       },
       include: {
         category: true,

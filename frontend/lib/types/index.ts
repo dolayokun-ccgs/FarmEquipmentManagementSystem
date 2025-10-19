@@ -134,6 +134,7 @@ export interface EquipmentFilters {
   condition?: EquipmentCondition;
   isAvailable?: boolean;
   search?: string;
+  tags?: string;
 }
 
 // Booking Types

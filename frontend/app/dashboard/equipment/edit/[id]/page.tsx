@@ -38,6 +38,7 @@ export default function EditEquipmentPage() {
     isAvailable: true,
     images: '',
     specifications: '',
+    tags: [] as string[],
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -45,6 +46,15 @@ export default function EditEquipmentPage() {
 
   const nigerianStates = ['Oyo', 'Ogun', 'Lagos', 'Osun', 'Ondo', 'Ekiti'];
   const conditionOptions = ['EXCELLENT', 'GOOD', 'FAIR'];
+
+  const farmingStages = [
+    { value: 'land_preparation', label: 'Land Preparation' },
+    { value: 'planting', label: 'Planting' },
+    { value: 'crop_management', label: 'Crop Management' },
+    { value: 'harvesting', label: 'Harvesting' },
+    { value: 'storage', label: 'Storage' },
+    { value: 'post_harvest', label: 'Post-Harvest' },
+  ];
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -60,7 +70,7 @@ export default function EditEquipmentPage() {
     const fetchCategories = async () => {
       try {
         const response = await axios.get(`${API_URL}/categories`);
-        setCategories(response.data.data || []);
+        setCategories(response.data.data.categories || []);
       } catch (error) {
         console.error('Failed to fetch categories:', error);
       } finally {
@@ -88,6 +98,17 @@ export default function EditEquipmentPage() {
           : JSON.stringify(currentEquipment.specifications, null, 2)
         : '';
 
+      let tagsArray: string[] = [];
+      if (currentEquipment.tags) {
+        try {
+          tagsArray = typeof currentEquipment.tags === 'string'
+            ? JSON.parse(currentEquipment.tags)
+            : currentEquipment.tags;
+        } catch {
+          tagsArray = [];
+        }
+      }
+
       setFormData({
         name: currentEquipment.name || '',
         description: currentEquipment.description || '',
@@ -103,6 +124,7 @@ export default function EditEquipmentPage() {
         isAvailable: currentEquipment.isAvailable ?? true,
         images,
         specifications,
+        tags: tagsArray,
       });
       setDataLoaded(true);
     }
@@ -126,6 +148,15 @@ export default function EditEquipmentPage() {
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
+  };
+
+  const toggleTag = (tagValue: string) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags.includes(tagValue)
+        ? prev.tags.filter(t => t !== tagValue)
+        : [...prev.tags, tagValue]
+    }));
   };
 
   const validateForm = () => {
@@ -180,6 +211,7 @@ export default function EditEquipmentPage() {
         longitude: formData.longitude ? Number(formData.longitude) : undefined,
         images: JSON.stringify(imagesArray),
         specifications: Object.keys(specificationsObj).length > 0 ? JSON.stringify(specificationsObj) : undefined,
+        tags: formData.tags.length > 0 ? JSON.stringify(formData.tags) : undefined,
       };
 
       await updateEquipment(id, equipmentData);
@@ -193,7 +225,7 @@ export default function EditEquipmentPage() {
     return (
       <>
         <Header />
-        <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <main className="min-h-screen bg-gray-50 flex items-center justify-center" suppressHydrationWarning>
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2D7A3E]"></div>
         </main>
         <Footer />
@@ -205,7 +237,7 @@ export default function EditEquipmentPage() {
     return (
       <>
         <Header />
-        <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <main className="min-h-screen bg-gray-50 flex items-center justify-center" suppressHydrationWarning>
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-700 mb-4">Access Denied</h1>
             <Button variant="primary" onClick={() => router.push('/dashboard')}>
@@ -222,7 +254,7 @@ export default function EditEquipmentPage() {
     return (
       <>
         <Header />
-        <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <main className="min-h-screen bg-gray-50 flex items-center justify-center" suppressHydrationWarning>
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-700 mb-4">Equipment Not Found</h1>
             <Button variant="primary" onClick={() => router.push('/dashboard/equipment')}>
@@ -238,7 +270,7 @@ export default function EditEquipmentPage() {
   return (
     <>
       <Header />
-      <main className="min-h-screen bg-gray-50">
+      <main className="min-h-screen bg-gray-50" suppressHydrationWarning>
         {/* Header */}
         <div className="bg-gradient-to-r from-[#021f5c] to-[#03296b] text-white py-8">
           <div className="container mx-auto px-4">
@@ -480,6 +512,40 @@ export default function EditEquipmentPage() {
                       rows={6}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D7A3E] font-mono text-sm"
                     />
+                  </div>
+
+                  {/* Tags Section */}
+                  <div>
+                    <label className="block text-sm font-bold text-[#021f5c] mb-3">
+                      Farming Stages
+                    </label>
+                    <p className="text-xs text-gray-600 mb-3">
+                      Select the farming stages this equipment is suitable for
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {farmingStages.map((stage) => (
+                        <button
+                          key={stage.value}
+                          type="button"
+                          onClick={() => toggleTag(stage.value)}
+                          className={`px-4 py-3 rounded-lg border-2 font-semibold text-sm transition-all ${
+                            formData.tags.includes(stage.value)
+                              ? 'border-[#2D7A3E] bg-green-50 text-[#2D7A3E]'
+                              : 'border-gray-300 bg-white text-gray-700 hover:border-[#2D7A3E] hover:bg-green-50'
+                          }`}
+                        >
+                          <span className="mr-2">
+                            {formData.tags.includes(stage.value) ? '✓' : '○'}
+                          </span>
+                          {stage.label}
+                        </button>
+                      ))}
+                    </div>
+                    {formData.tags.length > 0 && (
+                      <p className="text-xs text-[#2D7A3E] mt-2 font-semibold">
+                        {formData.tags.length} stage{formData.tags.length !== 1 ? 's' : ''} selected
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

@@ -32,6 +32,7 @@ export default function AddEquipmentContent() {
     isAvailable: true,
     images: '',
     specifications: '',
+    tags: [] as string[],
   });
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -47,6 +48,15 @@ export default function AddEquipmentContent() {
   ];
 
   const conditionOptions = ['EXCELLENT', 'GOOD', 'FAIR'];
+
+  const farmingStages = [
+    { value: 'land_preparation', label: 'Land Preparation' },
+    { value: 'planting', label: 'Planting' },
+    { value: 'crop_management', label: 'Crop Management' },
+    { value: 'harvesting', label: 'Harvesting' },
+    { value: 'storage', label: 'Storage' },
+    { value: 'post_harvest', label: 'Post-Harvest' },
+  ];
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -93,6 +103,15 @@ export default function AddEquipmentContent() {
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
+  };
+
+  const toggleTag = (tagValue: string) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags.includes(tagValue)
+        ? prev.tags.filter(t => t !== tagValue)
+        : [...prev.tags, tagValue]
+    }));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -194,6 +213,7 @@ export default function AddEquipmentContent() {
         longitude: formData.longitude ? Number(formData.longitude) : undefined,
         images: JSON.stringify(imagesArray),
         specifications: Object.keys(specificationsObj).length > 0 ? JSON.stringify(specificationsObj) : undefined,
+        tags: formData.tags.length > 0 ? JSON.stringify(formData.tags) : undefined,
       };
 
       await createEquipment(equipmentData);
@@ -554,6 +574,40 @@ export default function AddEquipmentContent() {
                         ))}
                       </div>
                     </div>
+                  )}
+                </div>
+
+                {/* Tags Section */}
+                <div>
+                  <label className="block text-sm font-bold text-[#021f5c] mb-3">
+                    Farming Stages
+                  </label>
+                  <p className="text-xs text-gray-600 mb-3">
+                    Select the farming stages this equipment is suitable for
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {farmingStages.map((stage) => (
+                      <button
+                        key={stage.value}
+                        type="button"
+                        onClick={() => toggleTag(stage.value)}
+                        className={`px-4 py-3 rounded-lg border-2 font-semibold text-sm transition-all ${
+                          formData.tags.includes(stage.value)
+                            ? 'border-[#2D7A3E] bg-green-50 text-[#2D7A3E]'
+                            : 'border-gray-300 bg-white text-gray-700 hover:border-[#2D7A3E] hover:bg-green-50'
+                        }`}
+                      >
+                        <span className="mr-2">
+                          {formData.tags.includes(stage.value) ? '✓' : '○'}
+                        </span>
+                        {stage.label}
+                      </button>
+                    ))}
+                  </div>
+                  {formData.tags.length > 0 && (
+                    <p className="text-xs text-[#2D7A3E] mt-2 font-semibold">
+                      {formData.tags.length} stage{formData.tags.length !== 1 ? 's' : ''} selected
+                    </p>
                   )}
                 </div>
 

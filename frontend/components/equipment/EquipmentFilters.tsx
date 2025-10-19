@@ -112,6 +112,26 @@ export default function EquipmentFilters({
         </select>
       </div>
 
+      {/* Farming Stage Filter */}
+      <div className="mb-4">
+        <label className="block text-sm font-bold text-[#021f5c] mb-2">
+          Farming Stage
+        </label>
+        <select
+          value={localFilters.tags || ''}
+          onChange={(e) => handleChange('tags', e.target.value)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D7A3E]"
+        >
+          <option value="">All Stages</option>
+          <option value="land_preparation">Land Preparation</option>
+          <option value="planting">Planting</option>
+          <option value="crop_management">Crop Management</option>
+          <option value="harvesting">Harvesting</option>
+          <option value="storage">Storage</option>
+          <option value="post_harvest">Post-Harvest</option>
+        </select>
+      </div>
+
       {/* Price Range */}
       <div className="mb-4">
         <label className="block text-sm font-bold text-[#021f5c] mb-2">
