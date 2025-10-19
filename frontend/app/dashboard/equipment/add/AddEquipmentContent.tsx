@@ -63,7 +63,7 @@ export default function AddEquipmentContent() {
     const fetchCategories = async () => {
       try {
         const response = await axios.get(`${API_URL}/categories`);
-        setCategories(response.data.data || []);
+        setCategories(response.data.data.categories || []);
       } catch (error) {
         console.error('Failed to fetch categories:', error);
       } finally {
@@ -123,7 +123,7 @@ export default function AddEquipmentContent() {
     setSubmitError('');
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       const formData = new FormData();
 
       selectedFiles.forEach((file) => {
@@ -205,7 +205,7 @@ export default function AddEquipmentContent() {
 
   if (authLoading || loadingCategories) {
     return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <main className="min-h-screen bg-gray-50 flex items-center justify-center" suppressHydrationWarning>
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2D7A3E]"></div>
       </main>
     );
@@ -213,7 +213,7 @@ export default function AddEquipmentContent() {
 
   if (!user || (user.role !== 'PLATFORM_OWNER' && user.role !== 'ADMIN')) {
     return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <main className="min-h-screen bg-gray-50 flex items-center justify-center" suppressHydrationWarning>
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-700 mb-4">Access Denied</h1>
           <Button variant="primary" onClick={() => router.push('/dashboard')}>
@@ -225,7 +225,7 @@ export default function AddEquipmentContent() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gray-50" suppressHydrationWarning>
       {/* Header */}
       <div className="bg-gradient-to-r from-[#021f5c] to-[#03296b] text-white py-8">
         <div className="container mx-auto px-4">

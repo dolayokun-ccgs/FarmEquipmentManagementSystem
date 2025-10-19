@@ -221,7 +221,7 @@ export default function BookingsContent() {
                             bookingId={booking.id}
                             amount={Number(booking.totalPrice)}
                             userEmail={user.email}
-                            token={typeof window !== 'undefined' ? localStorage.getItem('token') || '' : ''}
+                            token={typeof window !== 'undefined' ? localStorage.getItem('accessToken') || '' : ''}
                           />
                         </div>
                       )}

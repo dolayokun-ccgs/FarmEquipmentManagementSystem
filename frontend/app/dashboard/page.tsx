@@ -54,7 +54,7 @@ export default function DashboardPage() {
 
       setStatsLoading(true);
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('accessToken');
         const response = await axios.get(
           `${process.env.NEXT_PUBLIC_API_URL}/stats/dashboard`,
           {

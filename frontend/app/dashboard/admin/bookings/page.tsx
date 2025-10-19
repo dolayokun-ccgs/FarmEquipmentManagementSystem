@@ -40,7 +40,7 @@ export default function AdminBookingsPage() {
   const fetchAllBookings = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       const params: any = { page: pagination.page, limit: pagination.limit };
 
       if (statusFilter) params.status = statusFilter;
@@ -65,7 +65,7 @@ export default function AdminBookingsPage() {
 
   const handleStatusChange = async (bookingId: string, newStatus: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       await axios.patch(
         `${API_URL}/bookings/${bookingId}/status`,
         { status: newStatus },
@@ -82,7 +82,7 @@ export default function AdminBookingsPage() {
     if (!reason) return;
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       await axios.patch(
         `${API_URL}/bookings/${bookingId}/cancel`,
         { cancellationReason: reason },

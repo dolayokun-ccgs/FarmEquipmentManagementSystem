@@ -48,7 +48,7 @@ export default function NotificationBell() {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       const response = await axios.get(`${API_URL}/notifications?limit=10`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -76,7 +76,7 @@ export default function NotificationBell() {
   // Mark notification as read
   const markAsRead = async (id: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       await axios.patch(
         `${API_URL}/notifications/${id}/read`,
         {},
@@ -98,7 +98,7 @@ export default function NotificationBell() {
   // Mark all as read
   const markAllAsRead = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       await axios.post(
         `${API_URL}/notifications/mark-all-read`,
         {},

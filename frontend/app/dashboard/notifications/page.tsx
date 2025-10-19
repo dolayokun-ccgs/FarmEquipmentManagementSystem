@@ -39,7 +39,7 @@ export default function NotificationsPage() {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: '20',
@@ -72,7 +72,7 @@ export default function NotificationsPage() {
   // Mark notification as read
   const markAsRead = async (id: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       await axios.patch(
         `${API_URL}/notifications/${id}/read`,
         {},
@@ -91,7 +91,7 @@ export default function NotificationsPage() {
   // Mark all as read
   const markAllAsRead = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       await axios.post(
         `${API_URL}/notifications/mark-all-read`,
         {},
@@ -110,7 +110,7 @@ export default function NotificationsPage() {
     if (!confirm('Are you sure you want to delete this notification?')) return;
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       await axios.delete(`${API_URL}/notifications/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });

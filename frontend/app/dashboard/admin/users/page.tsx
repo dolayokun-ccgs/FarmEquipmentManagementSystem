@@ -59,7 +59,7 @@ export default function AdminUsersPage() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: '10',
@@ -85,7 +85,7 @@ export default function AdminUsersPage() {
     if (!confirm('Are you sure you want to delete this user?')) return;
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       await axios.delete(`${API_URL}/users/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
