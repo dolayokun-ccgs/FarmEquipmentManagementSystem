@@ -1,0 +1,13 @@
+Act as a developer who has been tasked to build a web application. The application will have the following use cases:
+
+1. Farmers: They can login to access the app and be able to book and rent a farming equipment for a period of time
+2. Platform Owner: Publish available farm equipment for renting and be able to manage request and booking
+
+Essentially, this is a web app for farm equipment management. Special consideration is to understand that this app will be used in places like Nigeria and Africa.
+
+Your task as a developer is to develop this web application which is also mobile friendly from UI perspective:
+
+1. Login, LogOut, Password Reset and Register capabilities. Ability to use other identity provider for registering
+2. Equipment page that shows available equipment and there booking status.
+
+Before you start to build, share the architecture and technology stack to be used. Focus should be on using cloud platform like Azure to host the application and Android technology in terms of mobile optimization.
