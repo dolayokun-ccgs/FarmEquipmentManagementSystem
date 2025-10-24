@@ -18,6 +18,7 @@ import statsRoutes from './routes/stats.routes';
 import uploadRoutes from './routes/upload.routes';
 import userRoutes from './routes/user.routes';
 import notificationRoutes from './routes/notification.routes';
+import contactRoutes from './routes/contact.routes';
 
 // Initialize Express app
 const app: Express = express();
@@ -60,7 +61,8 @@ app.get('/api', (_req: Request, res: Response) => {
       categories: '/api/categories',
       payments: '/api/payments',
       stats: '/api/stats',
-      upload: '/api/upload'
+      upload: '/api/upload',
+      contact: '/api/contact'
     }
   });
 });
@@ -75,6 +77,7 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/contact', contactRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

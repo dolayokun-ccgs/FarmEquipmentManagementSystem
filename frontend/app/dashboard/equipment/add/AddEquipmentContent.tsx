@@ -31,9 +31,10 @@ export default function AddEquipmentContent() {
     longitude: '',
     isAvailable: true,
     images: '',
-    specifications: '',
     tags: [] as string[],
   });
+
+  const [specifications, setSpecifications] = useState<Record<string, string>>({});
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
@@ -182,6 +183,27 @@ export default function AddEquipmentContent() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleSpecificationChange = (key: string, value: string) => {
+    setSpecifications(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  const addSpecificationField = () => {
+    const key = `spec_${Object.keys(specifications).length + 1}`;
+    setSpecifications(prev => ({
+      ...prev,
+      [key]: ''
+    }));
+  };
+
+  const removeSpecificationField = (key: string) => {
+    const newSpecs = { ...specifications };
+    delete newSpecs[key];
+    setSpecifications(newSpecs);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError('');
@@ -195,16 +217,13 @@ export default function AddEquipmentContent() {
       // Use uploaded images instead of the text field
       const imagesArray = uploadedImages;
 
-      // Parse specifications as JSON object
-      let specificationsObj: Record<string, any> = {};
-      if (formData.specifications.trim()) {
-        try {
-          specificationsObj = JSON.parse(formData.specifications);
-        } catch (error) {
-          setSubmitError('Specifications must be valid JSON format');
-          return;
+      // Filter out empty specifications
+      const filteredSpecs = Object.entries(specifications).reduce((acc, [key, value]) => {
+        if (key && value) {
+          acc[key] = value;
         }
-      }
+        return acc;
+      }, {} as Record<string, string>);
 
       const equipmentData = {
         ...formData,
@@ -212,7 +231,7 @@ export default function AddEquipmentContent() {
         latitude: formData.latitude ? Number(formData.latitude) : undefined,
         longitude: formData.longitude ? Number(formData.longitude) : undefined,
         images: JSON.stringify(imagesArray),
-        specifications: Object.keys(specificationsObj).length > 0 ? JSON.stringify(specificationsObj) : undefined,
+        specifications: Object.keys(filteredSpecs).length > 0 ? JSON.stringify(filteredSpecs) : undefined,
         tags: formData.tags.length > 0 ? JSON.stringify(formData.tags) : undefined,
       };
 
@@ -612,20 +631,67 @@ export default function AddEquipmentContent() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-[#021f5c] mb-2">
-                    Specifications (JSON Object)
-                  </label>
-                  <textarea
-                    name="specifications"
-                    value={formData.specifications}
-                    onChange={handleChange}
-                    rows={6}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D7A3E] font-mono text-sm"
-                    placeholder='{"Engine": "55 HP", "Power Steering": "Yes", "4WD": "Standard"}'
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Enter specifications as a JSON object (key-value pairs)
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-bold text-[#021f5c]">
+                      Specifications
+                    </label>
+                    <Button
+                      type="button"
+                      variant="outline-dark"
+                      onClick={addSpecificationField}
+                      className="text-sm px-4 py-2"
+                    >
+                      + Add Specification
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-600 mb-3">
+                    Add key specifications for this equipment (e.g., Engine, Power Steering, etc.)
                   </p>
+
+                  {Object.keys(specifications).length === 0 ? (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                      <p className="text-gray-500 text-sm">No specifications added yet. Click "Add Specification" to start.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {Object.entries(specifications).map(([key, value], index) => (
+                        <div key={key} className="flex gap-3 items-start">
+                          <div className="flex-1">
+                            <input
+                              type="text"
+                              value={key.startsWith('spec_') ? '' : key}
+                              onChange={(e) => {
+                                const newKey = e.target.value;
+                                const newSpecs = { ...specifications };
+                                delete newSpecs[key];
+                                newSpecs[newKey] = value;
+                                setSpecifications(newSpecs);
+                              }}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D7A3E]"
+                              placeholder="Specification name (e.g., Engine)"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <input
+                              type="text"
+                              value={value}
+                              onChange={(e) => handleSpecificationChange(key, e.target.value)}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D7A3E]"
+                              placeholder="Value (e.g., 55 HP)"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeSpecificationField(key)}
+                            className="mt-2 text-red-500 hover:text-red-700 font-bold"
+                            title="Remove specification"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -641,7 +707,7 @@ export default function AddEquipmentContent() {
             <div className="flex gap-4">
               <Button
                 type="button"
-                variant="outline"
+                variant="outline-dark"
                 onClick={() => router.push('/dashboard/equipment')}
                 className="flex-1"
               >

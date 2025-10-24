@@ -1,9 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import axios from 'axios';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Button from '@/components/shared/Button';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -56,18 +59,22 @@ export default function ContactPage() {
     setSubmitStatus('idle');
 
     try {
-      // TODO: Implement actual API call to send contact form
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
+      const response = await axios.post(`${API_URL}/contact`, formData);
 
-      setSubmitStatus('success');
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        subject: '',
-        message: '',
-      });
+      if (response.data.status === 'success') {
+        setSubmitStatus('success');
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          subject: '',
+          message: '',
+        });
+      } else {
+        setSubmitStatus('error');
+      }
     } catch (error) {
+      console.error('Error sending contact form:', error);
       setSubmitStatus('error');
     } finally {
       setIsSubmitting(false);
@@ -355,7 +362,7 @@ export default function ContactPage() {
           <div className="mt-12">
             <div className="bg-white rounded-lg shadow-md p-6">
               <h3 className="text-2xl font-bold text-[#021f5c] mb-4">Visit Our Location</h3>
-              <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden">
+              <div className="h-64 md:h-80 bg-gray-200 rounded-lg overflow-hidden">
                 <iframe
                   src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3956.3063!2d3.89!3d7.38!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zN8KwMjInNDguMCJOIDPCsDUzJzI0LjAiRQ!5e0!3m2!1sen!2sng!4v1234567890"
                   width="100%"

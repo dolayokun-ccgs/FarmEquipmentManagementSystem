@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'green' | 'orange';
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'green' | 'orange' | 'outline-dark';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps {
@@ -35,6 +35,7 @@ export default function Button({
     primary: 'bg-[#fdca2e] text-[#021f5c] hover:bg-[#021f5c] hover:text-[#fdca2e] shadow-md',
     secondary: 'bg-white border-2 border-[#021f5c] text-[#021f5c] hover:bg-[#021f5c] hover:text-white',
     outline: 'bg-transparent border-2 border-white text-white hover:bg-white hover:text-[#021f5c]',
+    'outline-dark': 'bg-transparent border-2 border-[#021f5c] text-[#021f5c] hover:bg-[#021f5c] hover:text-white',
     green: 'bg-[#2D7A3E] text-white hover:bg-[#7FBF7F] shadow-md',
     orange: 'bg-[#F47920] text-white hover:bg-[#FFB366] shadow-md',
   };

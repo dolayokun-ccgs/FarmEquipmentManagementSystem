@@ -36,10 +36,13 @@ export default function EditEquipmentPage() {
     latitude: '',
     longitude: '',
     isAvailable: true,
-    images: '',
-    specifications: '',
     tags: [] as string[],
   });
+
+  const [specifications, setSpecifications] = useState<Record<string, string>>({});
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState('');
@@ -86,24 +89,39 @@ export default function EditEquipmentPage() {
   // Load equipment data into form
   useEffect(() => {
     if (currentEquipment && !dataLoaded) {
-      const images = currentEquipment.images
-        ? typeof currentEquipment.images === 'string'
-          ? currentEquipment.images
-          : JSON.stringify(currentEquipment.images)
-        : '';
-
-      const specifications = currentEquipment.specifications
-        ? typeof currentEquipment.specifications === 'string'
-          ? currentEquipment.specifications
-          : JSON.stringify(currentEquipment.specifications, null, 2)
-        : '';
-
-      let tagsArray: string[] = [];
-      if (currentEquipment.tags) {
+      // Parse and load images
+      let imagesArray: string[] = [];
+      if (currentEquipment.images) {
         try {
-          tagsArray = typeof currentEquipment.tags === 'string'
-            ? JSON.parse(currentEquipment.tags)
-            : currentEquipment.tags;
+          imagesArray = typeof currentEquipment.images === 'string'
+            ? JSON.parse(currentEquipment.images)
+            : currentEquipment.images;
+        } catch {
+          imagesArray = [];
+        }
+      }
+      setUploadedImages(imagesArray);
+
+      // Parse and load specifications
+      let specificationsObj: Record<string, string> = {};
+      if (currentEquipment.specifications) {
+        try {
+          specificationsObj = typeof currentEquipment.specifications === 'string'
+            ? JSON.parse(currentEquipment.specifications)
+            : currentEquipment.specifications;
+        } catch {
+          specificationsObj = {};
+        }
+      }
+      setSpecifications(specificationsObj);
+
+      // Parse and load tags
+      let tagsArray: string[] = [];
+      if ((currentEquipment as any).tags) {
+        try {
+          tagsArray = typeof (currentEquipment as any).tags === 'string'
+            ? JSON.parse((currentEquipment as any).tags)
+            : (currentEquipment as any).tags;
         } catch {
           tagsArray = [];
         }
@@ -122,8 +140,6 @@ export default function EditEquipmentPage() {
         latitude: currentEquipment.latitude?.toString() || '',
         longitude: currentEquipment.longitude?.toString() || '',
         isAvailable: currentEquipment.isAvailable ?? true,
-        images,
-        specifications,
         tags: tagsArray,
       });
       setDataLoaded(true);
@@ -159,6 +175,78 @@ export default function EditEquipmentPage() {
     }));
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const fileArray = Array.from(files);
+      if (uploadedImages.length + selectedFiles.length + fileArray.length > 5) {
+        setSubmitError('Maximum 5 images allowed');
+        return;
+      }
+      setSelectedFiles([...selectedFiles, ...fileArray]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
+  };
+
+  const removeUploadedImage = (index: number) => {
+    setUploadedImages(uploadedImages.filter((_, i) => i !== index));
+  };
+
+  const uploadImages = async () => {
+    if (selectedFiles.length === 0) return;
+
+    setUploadingImages(true);
+    setSubmitError('');
+
+    try {
+      const token = localStorage.getItem('accessToken');
+      const formData = new FormData();
+
+      selectedFiles.forEach((file) => {
+        formData.append('images', file);
+      });
+
+      const response = await axios.post(`${API_URL}/upload/equipment`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const newImages = response.data.data.images;
+      setUploadedImages([...uploadedImages, ...newImages]);
+      setSelectedFiles([]);
+    } catch (error: any) {
+      setSubmitError(error.response?.data?.message || 'Failed to upload images');
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const handleSpecificationChange = (key: string, value: string) => {
+    setSpecifications(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  const addSpecificationField = () => {
+    const key = `spec_${Object.keys(specifications).length + 1}`;
+    setSpecifications(prev => ({
+      ...prev,
+      [key]: ''
+    }));
+  };
+
+  const removeSpecificationField = (key: string) => {
+    const newSpecs = { ...specifications };
+    delete newSpecs[key];
+    setSpecifications(newSpecs);
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -185,24 +273,16 @@ export default function EditEquipmentPage() {
     }
 
     try {
-      let imagesArray: string[] = [];
-      if (formData.images.trim()) {
-        try {
-          imagesArray = JSON.parse(formData.images);
-        } catch {
-          imagesArray = formData.images.split(',').map(img => img.trim()).filter(img => img);
-        }
-      }
+      // Use uploaded images
+      const imagesArray = uploadedImages;
 
-      let specificationsObj: Record<string, any> = {};
-      if (formData.specifications.trim()) {
-        try {
-          specificationsObj = JSON.parse(formData.specifications);
-        } catch (error) {
-          setSubmitError('Specifications must be valid JSON format');
-          return;
+      // Filter out empty specifications
+      const filteredSpecs = Object.entries(specifications).reduce((acc, [key, value]) => {
+        if (key && value) {
+          acc[key] = value;
         }
-      }
+        return acc;
+      }, {} as Record<string, string>);
 
       const equipmentData = {
         ...formData,
@@ -210,7 +290,7 @@ export default function EditEquipmentPage() {
         latitude: formData.latitude ? Number(formData.latitude) : undefined,
         longitude: formData.longitude ? Number(formData.longitude) : undefined,
         images: JSON.stringify(imagesArray),
-        specifications: Object.keys(specificationsObj).length > 0 ? JSON.stringify(specificationsObj) : undefined,
+        specifications: Object.keys(filteredSpecs).length > 0 ? JSON.stringify(filteredSpecs) : undefined,
         tags: formData.tags.length > 0 ? JSON.stringify(formData.tags) : undefined,
       };
 
@@ -488,30 +568,176 @@ export default function EditEquipmentPage() {
                 </h2>
 
                 <div className="space-y-6">
+                  {/* Image Upload Section */}
                   <div>
                     <label className="block text-sm font-bold text-[#021f5c] mb-2">
-                      Images (JSON Array or comma-separated URLs)
+                      Equipment Images (Max 5)
                     </label>
-                    <textarea
-                      name="images"
-                      value={formData.images}
-                      onChange={handleChange}
-                      rows={3}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D7A3E] font-mono text-sm"
-                    />
+
+                    {/* File Input */}
+                    <div className="mb-4">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                        multiple
+                        onChange={handleFileChange}
+                        className="hidden"
+                        id="image-upload"
+                        disabled={uploadedImages.length + selectedFiles.length >= 5}
+                      />
+                      <label
+                        htmlFor="image-upload"
+                        className={`inline-block px-6 py-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                          uploadedImages.length + selectedFiles.length >= 5
+                            ? 'border-gray-300 bg-gray-100 cursor-not-allowed'
+                            : 'border-[#2D7A3E] bg-green-50 hover:bg-green-100'
+                        }`}
+                      >
+                        <span className="text-[#021f5c] font-semibold">
+                          {uploadedImages.length + selectedFiles.length >= 5
+                            ? '✓ Maximum images selected'
+                            : '📁 Select Images'}
+                        </span>
+                      </label>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Accepted formats: JPEG, JPG, PNG, WebP (Max 5MB per image)
+                      </p>
+                    </div>
+
+                    {/* Selected Files Preview */}
+                    {selectedFiles.length > 0 && (
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-sm font-semibold text-[#021f5c]">
+                            Selected Files ({selectedFiles.length})
+                          </p>
+                          <Button
+                            type="button"
+                            variant="primary"
+                            onClick={uploadImages}
+                            disabled={uploadingImages}
+                            className="text-sm px-4 py-2"
+                          >
+                            {uploadingImages ? 'Uploading...' : '⬆ Upload Images'}
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {selectedFiles.map((file, index) => (
+                            <div key={index} className="relative border rounded-lg p-2 bg-gray-50">
+                              <div className="aspect-square bg-gray-200 rounded flex items-center justify-center mb-2">
+                                <span className="text-4xl">📷</span>
+                              </div>
+                              <p className="text-xs text-gray-600 truncate">{file.name}</p>
+                              <p className="text-xs text-gray-500">
+                                {(file.size / 1024).toFixed(1)} KB
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => removeFile(index)}
+                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Uploaded Images Preview */}
+                    {uploadedImages.length > 0 && (
+                      <div>
+                        <p className="text-sm font-semibold text-[#021f5c] mb-2">
+                          Uploaded Images ({uploadedImages.length})
+                        </p>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {uploadedImages.map((imageUrl, index) => (
+                            <div key={index} className="relative border rounded-lg p-2 bg-white">
+                              <div className="aspect-square bg-gray-100 rounded overflow-hidden mb-2">
+                                <img
+                                  src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${imageUrl}`}
+                                  alt={`Equipment ${index + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <p className="text-xs text-green-600 font-semibold">✓ Uploaded</p>
+                              <button
+                                type="button"
+                                onClick={() => removeUploadedImage(index)}
+                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
+                  {/* Specifications Section */}
                   <div>
-                    <label className="block text-sm font-bold text-[#021f5c] mb-2">
-                      Specifications (JSON Object)
-                    </label>
-                    <textarea
-                      name="specifications"
-                      value={formData.specifications}
-                      onChange={handleChange}
-                      rows={6}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D7A3E] font-mono text-sm"
-                    />
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="block text-sm font-bold text-[#021f5c]">
+                        Specifications
+                      </label>
+                      <Button
+                        type="button"
+                        variant="outline-dark"
+                        onClick={addSpecificationField}
+                        className="text-sm px-4 py-2"
+                      >
+                        + Add Specification
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-600 mb-3">
+                      Add key specifications for this equipment (e.g., Engine, Power Steering, etc.)
+                    </p>
+
+                    {Object.keys(specifications).length === 0 ? (
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                        <p className="text-gray-500 text-sm">No specifications added yet. Click "Add Specification" to start.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {Object.entries(specifications).map(([key, value]) => (
+                          <div key={key} className="flex gap-3 items-start">
+                            <div className="flex-1">
+                              <input
+                                type="text"
+                                value={key.startsWith('spec_') ? '' : key}
+                                onChange={(e) => {
+                                  const newKey = e.target.value;
+                                  const newSpecs = { ...specifications };
+                                  delete newSpecs[key];
+                                  newSpecs[newKey] = value;
+                                  setSpecifications(newSpecs);
+                                }}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D7A3E]"
+                                placeholder="Specification name (e.g., Engine)"
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <input
+                                type="text"
+                                value={value}
+                                onChange={(e) => handleSpecificationChange(key, e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D7A3E]"
+                                placeholder="Value (e.g., 55 HP)"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeSpecificationField(key)}
+                              className="mt-2 text-red-500 hover:text-red-700 font-bold"
+                              title="Remove specification"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Tags Section */}
@@ -559,7 +785,7 @@ export default function EditEquipmentPage() {
               <div className="flex gap-4">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="outline-dark"
                   onClick={() => router.push('/dashboard/equipment')}
                   className="flex-1"
                 >
