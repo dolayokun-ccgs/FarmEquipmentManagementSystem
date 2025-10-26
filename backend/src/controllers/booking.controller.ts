@@ -622,6 +622,288 @@ export const cancelBooking = async (
 };
 
 /**
+ * Update booking details (dates, notes)
+ * PATCH /api/bookings/:id
+ */
+export const updateBooking = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        status: 'error',
+        message: 'Unauthorized',
+      });
+      return;
+    }
+
+    const { id } = req.params;
+    const { startDate, endDate, notes } = req.body;
+
+    // Get existing booking
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      include: {
+        equipment: {
+          select: {
+            id: true,
+            name: true,
+            pricePerDay: true,
+            ownerId: true,
+          },
+        },
+      },
+    });
+
+    if (!booking) {
+      res.status(404).json({
+        status: 'error',
+        message: 'Booking not found',
+      });
+      return;
+    }
+
+    // Only the farmer who made the booking can update it
+    if (booking.farmerId !== req.user.userId && req.user.role !== 'ADMIN') {
+      res.status(403).json({
+        status: 'error',
+        message: 'You can only edit your own bookings',
+      });
+      return;
+    }
+
+    // Cannot edit if payment has been made
+    if (booking.paymentStatus !== 'PENDING') {
+      res.status(400).json({
+        status: 'error',
+        message: 'Cannot edit booking after payment has been made',
+      });
+      return;
+    }
+
+    // Prepare update data
+    const updateData: any = {};
+
+    // If dates are being changed, validate and recalculate
+    if (startDate || endDate) {
+      const newStart = startDate ? new Date(startDate) : booking.startDate;
+      const newEnd = endDate ? new Date(endDate) : booking.endDate;
+      const now = new Date();
+
+      if (newStart < now) {
+        res.status(400).json({
+          status: 'error',
+          message: 'Start date cannot be in the past',
+        });
+        return;
+      }
+
+      if (newEnd <= newStart) {
+        res.status(400).json({
+          status: 'error',
+          message: 'End date must be after start date',
+        });
+        return;
+      }
+
+      // Check for booking conflicts (excluding current booking)
+      const conflictingBookings = await prisma.booking.findMany({
+        where: {
+          equipmentId: booking.equipmentId,
+          id: { not: id },
+          status: { in: ['CONFIRMED', 'ACTIVE'] },
+          OR: [
+            {
+              AND: [
+                { startDate: { lte: newStart } },
+                { endDate: { gte: newStart } },
+              ],
+            },
+            {
+              AND: [
+                { startDate: { lte: newEnd } },
+                { endDate: { gte: newEnd } },
+              ],
+            },
+            {
+              AND: [
+                { startDate: { gte: newStart } },
+                { endDate: { lte: newEnd } },
+              ],
+            },
+          ],
+        },
+      });
+
+      if (conflictingBookings.length > 0) {
+        res.status(409).json({
+          status: 'error',
+          message: 'Equipment is already booked for the selected dates',
+          conflictingDates: conflictingBookings.map((b) => ({
+            startDate: b.startDate,
+            endDate: b.endDate,
+          })),
+        });
+        return;
+      }
+
+      // Recalculate pricing
+      const totalDays = Math.ceil(
+        (newEnd.getTime() - newStart.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      const totalPrice = Number(booking.equipment.pricePerDay) * totalDays;
+
+      updateData.startDate = newStart;
+      updateData.endDate = newEnd;
+      updateData.totalDays = totalDays;
+      updateData.totalPrice = totalPrice;
+    }
+
+    if (notes !== undefined) {
+      updateData.notes = notes || null;
+    }
+
+    // Update booking
+    const updatedBooking = await prisma.booking.update({
+      where: { id },
+      data: updateData,
+      include: {
+        equipment: {
+          include: {
+            category: true,
+            owner: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+        farmer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phoneNumber: true,
+          },
+        },
+      },
+    });
+
+    // Notify equipment owner about the update
+    if (startDate || endDate) {
+      await createNotification(
+        booking.equipment.ownerId,
+        'BOOKING_UPDATED',
+        'Booking Updated',
+        `${updatedBooking.farmer.firstName} ${updatedBooking.farmer.lastName} has updated their booking for ${booking.equipment.name}`,
+        { bookingId: updatedBooking.id, equipmentId: booking.equipment.id }
+      );
+    }
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Booking updated successfully',
+      data: { booking: updatedBooking },
+    });
+  } catch (error) {
+    console.error('Update booking error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to update booking',
+    });
+  }
+};
+
+/**
+ * Delete booking (complete removal)
+ * DELETE /api/bookings/:id
+ */
+export const deleteBooking = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        status: 'error',
+        message: 'Unauthorized',
+      });
+      return;
+    }
+
+    const { id } = req.params;
+
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      include: {
+        equipment: {
+          select: {
+            id: true,
+            name: true,
+            ownerId: true,
+          },
+        },
+      },
+    });
+
+    if (!booking) {
+      res.status(404).json({
+        status: 'error',
+        message: 'Booking not found',
+      });
+      return;
+    }
+
+    // Only the farmer who made the booking can delete it
+    if (booking.farmerId !== req.user.userId && req.user.role !== 'ADMIN') {
+      res.status(403).json({
+        status: 'error',
+        message: 'You can only delete your own bookings',
+      });
+      return;
+    }
+
+    // Cannot delete if payment has been made
+    if (booking.paymentStatus !== 'PENDING') {
+      res.status(400).json({
+        status: 'error',
+        message: 'Cannot delete booking after payment has been made. Please cancel instead.',
+      });
+      return;
+    }
+
+    // Delete the booking
+    await prisma.booking.delete({
+      where: { id },
+    });
+
+    // Notify equipment owner
+    await createNotification(
+      booking.equipment.ownerId,
+      'BOOKING_DELETED',
+      'Booking Deleted',
+      `A booking request for your ${booking.equipment.name} has been removed`,
+      { equipmentId: booking.equipment.id }
+    );
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Booking deleted successfully',
+    });
+  } catch (error) {
+    console.error('Delete booking error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to delete booking',
+    });
+  }
+};
+
+/**
  * Get equipment availability
  * GET /api/bookings/availability/:equipmentId
  */

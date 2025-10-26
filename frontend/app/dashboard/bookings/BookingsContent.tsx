@@ -4,16 +4,19 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store/auth.store';
 import { useBookingStore } from '@/lib/store/booking.store';
-import { BookingStatus } from '@/lib/types';
+import { BookingStatus, Booking } from '@/lib/types';
 import Button from '@/components/shared/Button';
 import PaymentButton from '@/components/booking/PaymentButton';
+import { toast } from 'react-hot-toast';
 
 export default function BookingsContent() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading: authLoading } = useAuthStore();
-  const { bookings, pagination, isLoading, fetchBookings, updateBookingStatus, cancelBooking } = useBookingStore();
+  const { bookings, pagination, isLoading, fetchBookings, updateBooking, deleteBooking, updateBookingStatus, cancelBooking } = useBookingStore();
 
   const [statusFilter, setStatusFilter] = useState<BookingStatus | ''>('');
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [editForm, setEditForm] = useState({ startDate: '', endDate: '', notes: '' });
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -40,9 +43,47 @@ export default function BookingsContent() {
 
     try {
       await cancelBooking(bookingId, reason);
+      toast.success('Booking cancelled successfully');
       fetchBookings(pagination.page, pagination.limit, statusFilter || undefined);
     } catch (error: any) {
-      alert(error.message || 'Failed to cancel booking');
+      toast.error(error.message || 'Failed to cancel booking');
+    }
+  };
+
+  const handleEditClick = (booking: Booking) => {
+    setEditingBooking(booking);
+    setEditForm({
+      startDate: booking.startDate.split('T')[0],
+      endDate: booking.endDate.split('T')[0],
+      notes: booking.notes || '',
+    });
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBooking) return;
+
+    try {
+      await updateBooking(editingBooking.id, editForm);
+      toast.success('Booking updated successfully');
+      setEditingBooking(null);
+      fetchBookings(pagination.page, pagination.limit, statusFilter || undefined);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update booking');
+    }
+  };
+
+  const handleDelete = async (bookingId: string) => {
+    if (!confirm('Are you sure you want to delete this booking? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await deleteBooking(bookingId);
+      toast.success('Booking deleted successfully');
+      fetchBookings(pagination.page, pagination.limit, statusFilter || undefined);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete booking');
     }
   };
 
@@ -265,6 +306,27 @@ export default function BookingsContent() {
                         </Button>
                       )}
 
+                      {/* Edit and Delete buttons - Only for farmers with pending payment */}
+                      {user.role === 'FARMER' && booking.paymentStatus === 'PENDING' && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditClick(booking)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(booking.id)}
+                            className="!text-red-600 !border-red-600 hover:!bg-red-50"
+                          >
+                            Delete
+                          </Button>
+                        </>
+                      )}
+
                       {[BookingStatus.PENDING, BookingStatus.CONFIRMED].includes(
                         booking.status as BookingStatus
                       ) &&
@@ -293,6 +355,80 @@ export default function BookingsContent() {
           </div>
         )}
       </div>
+
+      {/* Edit Booking Modal */}
+      {editingBooking && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h2 className="text-2xl font-bold text-[#021f5c] mb-4">Edit Booking</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Equipment: <strong>{editingBooking.equipment?.name}</strong>
+            </p>
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  id="startDate"
+                  value={editForm.startDate}
+                  onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value })}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D7A3E]"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  id="endDate"
+                  value={editForm.endDate}
+                  onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })}
+                  min={editForm.startDate || new Date().toISOString().split('T')[0]}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D7A3E]"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes (Optional)
+                </label>
+                <textarea
+                  id="notes"
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D7A3E]"
+                  placeholder="Any special requests or notes..."
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  className="flex-1"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Updating...' : 'Update Booking'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setEditingBooking(null)}
+                  disabled={isLoading}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

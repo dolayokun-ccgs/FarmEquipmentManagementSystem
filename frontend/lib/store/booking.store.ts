@@ -18,6 +18,8 @@ interface BookingState {
   fetchBookings: (page?: number, limit?: number, status?: BookingStatus, equipmentId?: string) => Promise<void>;
   fetchBookingById: (id: string) => Promise<void>;
   createBooking: (data: CreateBookingData) => Promise<Booking>;
+  updateBooking: (id: string, data: { startDate?: string; endDate?: string; notes?: string }) => Promise<Booking>;
+  deleteBooking: (id: string) => Promise<void>;
   updateBookingStatus: (id: string, status: BookingStatus) => Promise<Booking>;
   cancelBooking: (id: string, reason?: string) => Promise<Booking>;
   checkAvailability: (equipmentId: string, startDate?: string, endDate?: string) => Promise<any>;
@@ -80,6 +82,43 @@ export const useBookingStore = create<BookingState>((set) => ({
     } catch (error: any) {
       set({
         error: error.message || 'Failed to create booking',
+        isLoading: false,
+      });
+      throw error;
+    }
+  },
+
+  updateBooking: async (id: string, data: { startDate?: string; endDate?: string; notes?: string }) => {
+    set({ isLoading: true, error: null });
+    try {
+      const booking = await bookingService.update(id, data);
+      set((state) => ({
+        bookings: state.bookings.map((b) => (b.id === id ? booking : b)),
+        currentBooking: state.currentBooking?.id === id ? booking : state.currentBooking,
+        isLoading: false,
+      }));
+      return booking;
+    } catch (error: any) {
+      set({
+        error: error.message || 'Failed to update booking',
+        isLoading: false,
+      });
+      throw error;
+    }
+  },
+
+  deleteBooking: async (id: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      await bookingService.delete(id);
+      set((state) => ({
+        bookings: state.bookings.filter((b) => b.id !== id),
+        currentBooking: state.currentBooking?.id === id ? null : state.currentBooking,
+        isLoading: false,
+      }));
+    } catch (error: any) {
+      set({
+        error: error.message || 'Failed to delete booking',
         isLoading: false,
       });
       throw error;

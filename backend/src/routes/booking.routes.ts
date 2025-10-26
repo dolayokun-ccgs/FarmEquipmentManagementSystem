@@ -3,6 +3,8 @@ import {
   createBooking,
   getAllBookings,
   getBookingById,
+  updateBooking,
+  deleteBooking,
   updateBookingStatus,
   cancelBooking,
   getEquipmentAvailability,
@@ -38,6 +40,20 @@ router.get('/:id', authenticate, getBookingById);
  * @access  Private (Farmer)
  */
 router.post('/', authenticate, createBooking);
+
+/**
+ * @route   PATCH /api/bookings/:id
+ * @desc    Update booking details (dates, notes)
+ * @access  Private (Farmer who made the booking, only if payment is PENDING)
+ */
+router.patch('/:id', authenticate, updateBooking);
+
+/**
+ * @route   DELETE /api/bookings/:id
+ * @desc    Delete booking completely
+ * @access  Private (Farmer who made the booking, only if payment is PENDING)
+ */
+router.delete('/:id', authenticate, deleteBooking);
 
 /**
  * @route   PATCH /api/bookings/:id/status

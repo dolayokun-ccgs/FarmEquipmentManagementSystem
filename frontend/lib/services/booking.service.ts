@@ -86,6 +86,42 @@ export const bookingService = {
   },
 
   /**
+   * Update booking (farmer - only if payment is PENDING)
+   */
+  update: async (
+    id: string,
+    data: { startDate?: string; endDate?: string; notes?: string }
+  ): Promise<Booking> => {
+    console.log('[Booking Service] Updating booking:', id, data);
+    const response = await api.patch<ApiResponse<{ booking: Booking }>>(
+      `/bookings/${id}`,
+      data
+    );
+
+    if (response.data.data?.booking) {
+      return response.data.data.booking;
+    }
+
+    throw new Error('Failed to update booking');
+  },
+
+  /**
+   * Delete booking (farmer - only if payment is PENDING)
+   */
+  delete: async (id: string): Promise<void> => {
+    console.log('[Booking Service] Deleting booking:', id);
+    const response = await api.delete<ApiResponse<void>>(
+      `/bookings/${id}`
+    );
+
+    if (response.data.status === 'success') {
+      return;
+    }
+
+    throw new Error('Failed to delete booking');
+  },
+
+  /**
    * Cancel booking (farmer)
    */
   cancel: async (id: string, cancellationReason?: string): Promise<Booking> => {
