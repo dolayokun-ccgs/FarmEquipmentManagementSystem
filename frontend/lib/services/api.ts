@@ -33,6 +33,18 @@ api.interceptors.response.use(
     return response;
   },
   (error: AxiosError<ApiError>) => {
+    // Log error details for debugging
+    console.error('API Error:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        baseURL: error.config?.baseURL,
+      }
+    });
+
     // Handle 401 Unauthorized - logout user
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {

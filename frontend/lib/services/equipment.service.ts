@@ -12,19 +12,25 @@ export const equipmentService = {
    * Get all equipment with filters
    */
   getAll: async (filters?: EquipmentFilters): Promise<PaginatedResponse<Equipment>> => {
+    console.log('[Equipment Service] Fetching equipment with filters:', filters);
     const response = await api.get<any>(
       '/equipment',
       { params: filters }
     );
 
+    console.log('[Equipment Service] Raw response:', response.data);
+
     if (response.data.data) {
       // Backend returns { status, data: { equipment: [], pagination: {} } }
-      return {
+      const result = {
         data: response.data.data.equipment || response.data.data.data || [],
         pagination: response.data.data.pagination || { total: 0, page: 1, limit: 20, totalPages: 0 },
       };
+      console.log('[Equipment Service] Parsed result:', result);
+      return result;
     }
 
+    console.log('[Equipment Service] No data found, returning empty');
     return { data: [], pagination: { total: 0, page: 1, limit: 20, totalPages: 0 } };
   },
 

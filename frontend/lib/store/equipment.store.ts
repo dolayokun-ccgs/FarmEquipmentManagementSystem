@@ -38,15 +38,19 @@ export const useEquipmentStore = create<EquipmentState>((set) => ({
   error: null,
 
   fetchEquipment: async (filters?: EquipmentFilters) => {
+    console.log('[Equipment Store] Fetching equipment...');
     set({ isLoading: true, error: null });
     try {
       const response: PaginatedResponse<Equipment> = await equipmentService.getAll(filters);
+      console.log('[Equipment Store] Setting state with:', response);
       set({
         equipment: response.data,
         pagination: response.pagination,
         isLoading: false,
       });
+      console.log('[Equipment Store] State updated successfully');
     } catch (error: any) {
+      console.error('[Equipment Store] Error fetching equipment:', error);
       set({
         error: error.message || 'Failed to fetch equipment',
         isLoading: false,

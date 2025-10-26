@@ -199,6 +199,8 @@ export const getAllBookings = async (
       return;
     }
 
+    console.log('[Booking Controller] User:', req.user.userId, 'Role:', req.user.role);
+
     const { page = 1, limit = 20, status, equipmentId } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
@@ -222,6 +224,8 @@ export const getAllBookings = async (
     if (equipmentId) {
       where.equipmentId = equipmentId as string;
     }
+
+    console.log('[Booking Controller] Query filters:', where);
 
     const [bookings, total] = await Promise.all([
       prisma.booking.findMany({
@@ -256,6 +260,8 @@ export const getAllBookings = async (
       }),
       prisma.booking.count({ where }),
     ]);
+
+    console.log('[Booking Controller] Found', total, 'bookings, returning', bookings.length, 'on this page');
 
     res.status(200).json({
       status: 'success',

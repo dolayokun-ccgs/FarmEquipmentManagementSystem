@@ -33,18 +33,24 @@ export const bookingService = {
     status?: BookingStatus,
     equipmentId?: string
   ): Promise<PaginatedResponse<Booking>> => {
+    console.log('[Booking Service] Fetching bookings with params:', { page, limit, status, equipmentId });
     const response = await api.get<ApiResponse<PaginatedResponse<Booking>>>(
       '/bookings',
       { params: { page, limit, status, equipmentId } }
     );
 
+    console.log('[Booking Service] Raw response:', response.data);
+
     if (response.data.data) {
-      return {
-        data: response.data.data.data,
+      const result = {
+        data: response.data.data.bookings || response.data.data.data || [],
         pagination: response.data.data.pagination,
       };
+      console.log('[Booking Service] Parsed result:', result);
+      return result;
     }
 
+    console.log('[Booking Service] No data found, returning empty');
     return { data: [], pagination: { total: 0, page: 1, limit: 20, totalPages: 0 } };
   },
 

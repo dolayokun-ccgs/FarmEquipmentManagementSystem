@@ -133,7 +133,7 @@ export default function DashboardPage() {
       title: 'Profile Settings',
       description: 'Update your account information',
       icon: '⚙️',
-      link: '/dashboard/settings',
+      link: '/dashboard/profile',
       color: 'bg-purple-50',
       roles: [UserRole.FARMER, UserRole.PLATFORM_OWNER, UserRole.ADMIN],
     },

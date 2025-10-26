@@ -17,20 +17,25 @@ if (process.env.NODE_ENV !== 'production') {
   globalThis.prismaGlobal = prisma;
 }
 
-// Handle connection errors
-prisma.$connect()
-  .then(() => {
+// Test connection on initialization
+(async () => {
+  try {
+    await prisma.$connect();
     console.log('✅ Database connected successfully');
-  })
-  .catch((error) => {
+  } catch (error) {
     console.error('❌ Database connection failed:', error);
-    process.exit(1);
-  });
+  }
+})();
 
 // Graceful shutdown
-process.on('beforeExit', async () => {
+const gracefulShutdown = async (signal: string) => {
+  console.log(`\n${signal} received, closing database connection...`);
   await prisma.$disconnect();
   console.log('👋 Database disconnected');
-});
+  process.exit(0);
+};
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 export default prisma;

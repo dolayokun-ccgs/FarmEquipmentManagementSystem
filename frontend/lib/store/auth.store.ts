@@ -4,6 +4,7 @@ import { authService } from '../services/auth.service';
 
 interface AuthState {
   user: User | null;
+  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -13,12 +14,21 @@ interface AuthState {
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   fetchUser: () => Promise<void>;
+  updateProfile: (data: {
+    firstName?: string;
+    lastName?: string;
+    phoneNumber?: string;
+    state?: string;
+    lga?: string;
+    profileImage?: string;
+  }) => Promise<void>;
   setUser: (user: User | null) => void;
   clearError: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: authService.getUserFromStorage(),
+  token: authService.getToken(),
   isAuthenticated: authService.isAuthenticated(),
   isLoading: false,
   error: null,
@@ -27,7 +37,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const { user } = await authService.login(credentials);
-      set({ user, isAuthenticated: true, isLoading: false });
+      const token = authService.getToken();
+      set({ user, token, isAuthenticated: true, isLoading: false });
     } catch (error: any) {
       set({ error: error.message || 'Login failed', isLoading: false });
       throw error;
@@ -38,7 +49,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const { user } = await authService.register(data);
-      set({ user, isAuthenticated: true, isLoading: false });
+      const token = authService.getToken();
+      set({ user, token, isAuthenticated: true, isLoading: false });
     } catch (error: any) {
       set({ error: error.message || 'Registration failed', isLoading: false });
       throw error;
@@ -49,7 +61,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true });
     try {
       await authService.logout();
-      set({ user: null, isAuthenticated: false, isLoading: false });
+      set({ user: null, token: null, isAuthenticated: false, isLoading: false });
     } catch (error: any) {
       set({ isLoading: false });
       throw error;
@@ -58,21 +70,42 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   fetchUser: async () => {
     if (!authService.isAuthenticated()) {
-      set({ user: null, isAuthenticated: false });
+      set({ user: null, token: null, isAuthenticated: false });
       return;
     }
 
     set({ isLoading: true });
     try {
       const user = await authService.getCurrentUser();
-      set({ user, isAuthenticated: true, isLoading: false });
+      const token = authService.getToken();
+      set({ user, token, isAuthenticated: true, isLoading: false });
     } catch (error: any) {
-      set({ user: null, isAuthenticated: false, isLoading: false });
+      set({ user: null, token: null, isAuthenticated: false, isLoading: false });
+    }
+  },
+
+  updateProfile: async (data: {
+    firstName?: string;
+    lastName?: string;
+    phoneNumber?: string;
+    state?: string;
+    lga?: string;
+    profileImage?: string;
+  }) => {
+    set({ isLoading: true, error: null });
+    try {
+      const user = await authService.updateProfile(data);
+      const token = authService.getToken();
+      set({ user, token, isAuthenticated: true, isLoading: false });
+    } catch (error: any) {
+      set({ error: error.message || 'Failed to update profile', isLoading: false });
+      throw error;
     }
   },
 
   setUser: (user: User | null) => {
-    set({ user, isAuthenticated: !!user });
+    const token = user ? authService.getToken() : null;
+    set({ user, token, isAuthenticated: !!user });
   },
 
   clearError: () => {

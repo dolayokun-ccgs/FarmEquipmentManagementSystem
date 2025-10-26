@@ -4,6 +4,8 @@ import {
   verifyPayment,
   paystackWebhook,
   getPaymentStatus,
+  initializeGroupPayment,
+  verifyGroupPayment,
 } from '../controllers/paymentController';
 import { authenticate } from '../middleware/auth';
 
@@ -17,11 +19,25 @@ const router = express.Router();
 router.post('/initialize', authenticate, initializePayment);
 
 /**
+ * @route   POST /api/payments/initialize-group
+ * @desc    Initialize a payment for a group booking participant
+ * @access  Private
+ */
+router.post('/initialize-group', authenticate, initializeGroupPayment);
+
+/**
  * @route   GET /api/payments/verify/:reference
  * @desc    Verify a payment transaction
  * @access  Public (can be called from frontend after redirect)
  */
 router.get('/verify/:reference', verifyPayment);
+
+/**
+ * @route   GET /api/payments/verify-group/:reference
+ * @desc    Verify a group booking payment transaction
+ * @access  Public (can be called from frontend after redirect)
+ */
+router.get('/verify-group/:reference', verifyGroupPayment);
 
 /**
  * @route   GET /api/payments/status/:reference

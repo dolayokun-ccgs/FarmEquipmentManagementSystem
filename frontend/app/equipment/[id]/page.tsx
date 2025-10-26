@@ -8,6 +8,8 @@ import { useAuthStore } from '@/lib/store/auth.store';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Button from '@/components/shared/Button';
+import GroupBookingForm from '@/components/groupBooking/GroupBookingForm';
+import AvailableGroupBookings from '@/components/groupBooking/AvailableGroupBookings';
 
 export default function EquipmentDetailPage() {
   const params = useParams();
@@ -23,6 +25,7 @@ export default function EquipmentDetailPage() {
   const [endDate, setEndDate] = useState('');
   const [notes, setNotes] = useState('');
   const [bookingError, setBookingError] = useState('');
+  const [bookingMode, setBookingMode] = useState<'individual' | 'group' | 'join'>('individual');
 
   useEffect(() => {
     if (id) {
@@ -243,7 +246,49 @@ export default function EquipmentDetailPage() {
                 </div>
 
                 {currentEquipment.isAvailable ? (
-                  <form onSubmit={handleBooking}>
+                  <>
+                    {/* Booking Mode Tabs */}
+                    <div className="mb-6 border-b border-gray-200">
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setBookingMode('individual')}
+                          className={`flex-1 pb-3 text-sm font-semibold border-b-2 transition-colors ${
+                            bookingMode === 'individual'
+                              ? 'border-[#2D7A3E] text-[#2D7A3E]'
+                              : 'border-transparent text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          Individual
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBookingMode('group')}
+                          className={`flex-1 pb-3 text-sm font-semibold border-b-2 transition-colors ${
+                            bookingMode === 'group'
+                              ? 'border-[#2D7A3E] text-[#2D7A3E]'
+                              : 'border-transparent text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          Create Group
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBookingMode('join')}
+                          className={`flex-1 pb-3 text-sm font-semibold border-b-2 transition-colors ${
+                            bookingMode === 'join'
+                              ? 'border-[#2D7A3E] text-[#2D7A3E]'
+                              : 'border-transparent text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          Join Group
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Individual Booking Form */}
+                    {bookingMode === 'individual' && (
+                      <form onSubmit={handleBooking}>
                     <div className="mb-4">
                       <label className="block text-sm font-bold text-[#021f5c] mb-2">
                         Start Date
@@ -300,12 +345,34 @@ export default function EquipmentDetailPage() {
                       {bookingLoading ? 'Booking...' : 'Book Now'}
                     </Button>
 
-                    {!isAuthenticated && (
-                      <p className="text-sm text-gray-600 text-center mt-3">
-                        You'll be redirected to login
-                      </p>
+                        {!isAuthenticated && (
+                          <p className="text-sm text-gray-600 text-center mt-3">
+                            You'll be redirected to login
+                          </p>
+                        )}
+                      </form>
                     )}
-                  </form>
+
+                    {/* Group Booking Form */}
+                    {bookingMode === 'group' && (
+                      <GroupBookingForm
+                        equipment={currentEquipment}
+                        onSuccess={(groupBookingId) => {
+                          router.push(`/group-bookings/${groupBookingId}`);
+                        }}
+                      />
+                    )}
+
+                    {/* Join Existing Group */}
+                    {bookingMode === 'join' && (
+                      <AvailableGroupBookings
+                        equipmentId={currentEquipment.id}
+                        onJoin={(groupBookingId) => {
+                          router.push(`/group-bookings/${groupBookingId}`);
+                        }}
+                      />
+                    )}
+                  </>
                 ) : (
                   <div className="text-center py-6">
                     <p className="text-red-600 font-semibold mb-2">Currently Unavailable</p>

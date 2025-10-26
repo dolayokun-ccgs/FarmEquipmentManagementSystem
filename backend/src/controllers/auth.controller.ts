@@ -243,6 +243,76 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
 };
 
 /**
+ * Update current user's profile
+ * PATCH /api/auth/profile
+ */
+export const updateProfile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        status: 'error',
+        message: 'Unauthorized',
+      });
+      return;
+    }
+
+    const { firstName, lastName, phoneNumber, state, lga, profileImage } = req.body;
+
+    // Get current user
+    const currentUser = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+    });
+
+    if (!currentUser) {
+      res.status(404).json({
+        status: 'error',
+        message: 'User not found',
+      });
+      return;
+    }
+
+    // Update user profile
+    const updatedUser = await prisma.user.update({
+      where: { id: req.user.userId },
+      data: {
+        firstName: firstName !== undefined ? firstName : currentUser.firstName,
+        lastName: lastName !== undefined ? lastName : currentUser.lastName,
+        phoneNumber: phoneNumber !== undefined ? phoneNumber : currentUser.phoneNumber,
+        state: state !== undefined ? state : currentUser.state,
+        lga: lga !== undefined ? lga : currentUser.lga,
+        profileImage: profileImage !== undefined ? profileImage : currentUser.profileImage,
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phoneNumber: true,
+        state: true,
+        lga: true,
+        role: true,
+        isVerified: true,
+        profileImage: true,
+        createdAt: true,
+        lastLogin: true,
+      },
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Profile updated successfully',
+      data: { user: updatedUser },
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to update profile',
+    });
+  }
+};
+
+/**
  * Logout user (client-side token removal)
  * POST /api/auth/logout
  */

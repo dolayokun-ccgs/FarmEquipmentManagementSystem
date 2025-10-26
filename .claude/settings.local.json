@@ -7,7 +7,17 @@
       "Bash(npm install:*)",
       "Bash(npx create-next-app:*)",
       "Bash(npx prisma init)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(set PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=yes)",
+      "Bash(npx prisma db seed:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(curl:*)",
+      "Bash(python -m json.tool:*)"
     ],
     "deny": [],
     "ask": []

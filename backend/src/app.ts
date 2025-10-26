@@ -13,6 +13,7 @@ import authRoutes from './routes/auth.routes';
 import categoryRoutes from './routes/category.routes';
 import equipmentRoutes from './routes/equipment.routes';
 import bookingRoutes from './routes/booking.routes';
+import groupBookingRoutes from './routes/groupBooking.routes';
 import paymentRoutes from './routes/paymentRoutes';
 import statsRoutes from './routes/stats.routes';
 import uploadRoutes from './routes/upload.routes';
@@ -58,6 +59,7 @@ app.get('/api', (_req: Request, res: Response) => {
       users: '/api/users',
       equipment: '/api/equipment',
       bookings: '/api/bookings',
+      groupBookings: '/api/group-bookings',
       categories: '/api/categories',
       payments: '/api/payments',
       stats: '/api/stats',
@@ -72,6 +74,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/equipment', equipmentRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/group-bookings', groupBookingRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/upload', uploadRoutes);
@@ -106,3 +109,4 @@ app.listen(PORT, () => {
 });
 
 export default app;
+

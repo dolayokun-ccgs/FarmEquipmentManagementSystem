@@ -1,6 +1,3 @@
-// Farm Equipment Management System - Prisma Schema
-// Database: Microsoft SQL Server (Azure SQL Database)
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,31 +7,29 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Models
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  passwordHash  String?   // Null for OAuth users
-  firstName     String?
-  lastName      String?
-  phoneNumber   String?
-  state         String?   // Nigeria state code (e.g., LAG, OGN)
-  lga           String?   // Local Government Area code
-  role          String    @default("FARMER") // FARMER, PLATFORM_OWNER, ADMIN
-  provider      String    @default("LOCAL") // LOCAL, GOOGLE, FACEBOOK, MICROSOFT
-  providerId    String?   // OAuth provider ID
-  isVerified    Boolean   @default(false)
-  profileImage  String?   // Azure Blob URL
-
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  lastLogin     DateTime?
-
-  // Relations
-  equipment      Equipment[]     // Equipment owned (for platform owners)
-  bookings       Booking[]       // Bookings made (for farmers)
-  reviews        Review[]
-  notifications  Notification[]  // Notifications for this user
+  id                     String             @id @default(uuid())
+  email                  String             @unique
+  passwordHash           String?
+  firstName              String?
+  lastName               String?
+  phoneNumber            String?
+  state                  String?
+  lga                    String?
+  role                   String             @default("FARMER")
+  provider               String             @default("LOCAL")
+  providerId             String?
+  isVerified             Boolean            @default(false)
+  profileImage           String?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  lastLogin              DateTime?
+  bookings               Booking[]
+  equipment              Equipment[]
+  initiatedGroupBookings GroupBooking[]     @relation("GroupBookingInitiator")
+  groupParticipations    GroupParticipant[]
+  notifications          Notification[]
+  reviews                Review[]
 
   @@index([email])
   @@index([role])
@@ -43,15 +38,12 @@ model User {
 }
 
 model Category {
-  id          String      @id @default(uuid())
-  name        String      @unique
-  description String?
-  iconUrl     String?
-  parentId    String?     // For subcategories
-
-  createdAt   DateTime    @default(now())
-
-  // Relations
+  id            String      @id @default(uuid())
+  name          String      @unique
+  description   String?
+  iconUrl       String?
+  parentId      String?
+  createdAt     DateTime    @default(now())
   parent        Category?   @relation("CategoryToSubcategory", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   subcategories Category[]  @relation("CategoryToSubcategory")
   equipment     Equipment[]
@@ -61,35 +53,30 @@ model Category {
 }
 
 model Equipment {
-  id              String    @id @default(uuid())
+  id              String         @id @default(uuid())
   ownerId         String
   name            String
-  description     String?   @db.Text
+  description     String?        @db.Text
   categoryId      String
-  pricePerDay     Decimal   @db.Decimal(10, 2)
-  currency        String    @default("NGN")
-  condition       String    @default("GOOD") // EXCELLENT, GOOD, FAIR, POOR
-
-  // Location
-  locationAddress String?   @db.Text
+  pricePerDay     Decimal        @db.Decimal(10, 2)
+  currency        String         @default("NGN")
+  condition       String         @default("GOOD")
+  locationAddress String?        @db.Text
   locationCity    String?
   locationState   String?
-  locationCountry String    @default("Nigeria")
-  latitude        Decimal?  @db.Decimal(10, 8)
-  longitude       Decimal?  @db.Decimal(11, 8)
-
-  isAvailable     Boolean   @default(true)
-  images          String?   @db.Text // JSON string of array of Azure Blob URLs
-  specifications  String?   @db.Text // JSON string of custom specs object
-  tags            String?   @db.Text // JSON string of farming stage tags (land_preparation, planting, crop_management, harvesting, storage, post_harvest)
-
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  // Relations
-  owner           User      @relation(fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  category        Category  @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  locationCountry String         @default("Nigeria")
+  latitude        Decimal?       @db.Decimal(10, 8)
+  longitude       Decimal?       @db.Decimal(11, 8)
+  isAvailable     Boolean        @default(true)
+  images          String?        @db.Text
+  specifications  String?        @db.Text
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  tags            String?        @db.Text
   bookings        Booking[]
+  category        Category       @relation(fields: [categoryId], references: [id], onUpdate: NoAction)
+  owner           User           @relation(fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  groupBookings   GroupBooking[]
   reviews         Review[]
 
   @@index([ownerId])
@@ -101,31 +88,25 @@ model Equipment {
 }
 
 model Booking {
-  id                  String    @id @default(uuid())
-  equipmentId         String
-  farmerId            String
-
-  startDate           DateTime
-  endDate             DateTime
-  totalDays           Int
-  pricePerDay         Decimal   @db.Decimal(10, 2)
-  totalPrice          Decimal   @db.Decimal(10, 2)
-
-  status              String    @default("PENDING") // PENDING, CONFIRMED, ACTIVE, COMPLETED, CANCELLED
-  paymentStatus       String    @default("PENDING") // PENDING, PAID, REFUNDED
-
-  notes               String?   @db.Text
-  cancellationReason  String?   @db.Text
-
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  confirmedAt         DateTime?
-  cancelledAt         DateTime?
-
-  // Relations
-  equipment           Equipment @relation(fields: [equipmentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  farmer              User      @relation(fields: [farmerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  review              Review?
+  id                 String    @id @default(uuid())
+  equipmentId        String
+  farmerId           String
+  startDate          DateTime
+  endDate            DateTime
+  totalDays          Int
+  pricePerDay        Decimal   @db.Decimal(10, 2)
+  totalPrice         Decimal   @db.Decimal(10, 2)
+  status             String    @default("PENDING")
+  paymentStatus      String    @default("PENDING")
+  notes              String?   @db.Text
+  cancellationReason String?   @db.Text
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  confirmedAt        DateTime?
+  cancelledAt        DateTime?
+  equipment          Equipment @relation(fields: [equipmentId], references: [id], onUpdate: NoAction)
+  farmer             User      @relation(fields: [farmerId], references: [id], onUpdate: NoAction)
+  review             Review?
 
   @@index([equipmentId])
   @@index([farmerId])
@@ -139,15 +120,12 @@ model Review {
   bookingId   String    @unique
   equipmentId String
   reviewerId  String
-  rating      Int       // 1-5 stars
+  rating      Int
   comment     String?   @db.Text
-
   createdAt   DateTime  @default(now())
-
-  // Relations
-  booking     Booking   @relation(fields: [bookingId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  reviewer    User      @relation(fields: [reviewerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  booking     Booking   @relation(fields: [bookingId], references: [id], onUpdate: NoAction)
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onUpdate: NoAction)
+  reviewer    User      @relation(fields: [reviewerId], references: [id], onUpdate: NoAction)
 
   @@index([equipmentId])
   @@index([reviewerId])
@@ -156,21 +134,69 @@ model Review {
 }
 
 model Notification {
-  id          String    @id @default(uuid())
-  userId      String
-  type        String    // BOOKING_CREATED, BOOKING_CONFIRMED, BOOKING_CANCELLED, BOOKING_COMPLETED, PAYMENT_RECEIVED, etc.
-  title       String
-  message     String    @db.Text
-  data        String?   @db.Text // JSON string for additional data (bookingId, etc.)
-  isRead      Boolean   @default(false)
-
-  createdAt   DateTime  @default(now())
-
-  // Relations
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  message   String   @db.Text
+  data      String?  @db.Text
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([userId])
   @@index([isRead])
   @@index([createdAt])
   @@map("notifications")
+}
+
+model GroupBooking {
+  id              String             @id @default(uuid())
+  equipmentId     String
+  initiatorId     String
+  startDate       DateTime
+  endDate         DateTime
+  totalDays       Int
+  pricePerDay     Decimal            @db.Decimal(10, 2)
+  totalPrice      Decimal            @db.Decimal(10, 2)
+  minParticipants Int                @default(2)
+  maxParticipants Int                @default(10)
+  status          String             @default("OPEN")
+  isPublic        Boolean            @default(true)
+  notes           String?            @db.Text
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  expiresAt       DateTime?
+  confirmedAt     DateTime?
+  cancelledAt     DateTime?
+  equipment       Equipment          @relation(fields: [equipmentId], references: [id], onUpdate: NoAction)
+  initiator       User               @relation("GroupBookingInitiator", fields: [initiatorId], references: [id], onUpdate: NoAction)
+  participants    GroupParticipant[]
+
+  @@index([equipmentId])
+  @@index([status])
+  @@index([initiatorId])
+  @@index([startDate, endDate])
+  @@index([isPublic])
+  @@map("group_bookings")
+}
+
+model GroupParticipant {
+  id               String       @id @default(uuid())
+  groupBookingId   String
+  farmerId         String
+  shareAmount      Decimal      @db.Decimal(10, 2)
+  paymentStatus    String       @default("PENDING")
+  paymentReference String?      @unique
+  joinedAt         DateTime     @default(now())
+  paidAt           DateTime?
+  notes            String?      @db.Text
+  farmer           User         @relation(fields: [farmerId], references: [id], onUpdate: NoAction)
+  groupBooking     GroupBooking @relation(fields: [groupBookingId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([groupBookingId, farmerId])
+  @@index([groupBookingId])
+  @@index([farmerId])
+  @@index([paymentStatus])
+  @@map("group_participants")
 }

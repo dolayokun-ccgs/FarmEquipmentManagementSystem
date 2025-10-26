@@ -82,6 +82,31 @@ export const authService = {
   },
 
   /**
+   * Update current user's profile
+   */
+  updateProfile: async (data: {
+    firstName?: string;
+    lastName?: string;
+    phoneNumber?: string;
+    state?: string;
+    lga?: string;
+    profileImage?: string;
+  }): Promise<User> => {
+    const response = await api.patch<ApiResponse<{ user: User }>>(
+      '/auth/profile',
+      data
+    );
+
+    if (response.data.data?.user) {
+      // Update user in localStorage
+      localStorage.setItem('user', JSON.stringify(response.data.data.user));
+      return response.data.data.user;
+    }
+
+    throw new Error('Failed to update profile');
+  },
+
+  /**
    * Get user from localStorage
    */
   getUserFromStorage: (): User | null => {

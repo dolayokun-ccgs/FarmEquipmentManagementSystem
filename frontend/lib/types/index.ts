@@ -135,6 +135,7 @@ export interface EquipmentFilters {
   isAvailable?: boolean;
   search?: string;
   tags?: string;
+  ownerId?: string;
 }
 
 // Booking Types
@@ -185,6 +186,81 @@ export interface CreateBookingData {
   equipmentId: string;
   startDate: string;
   endDate: string;
+  notes?: string;
+}
+
+// Group Booking Types
+export enum GroupBookingStatus {
+  OPEN = 'OPEN',
+  FILLED = 'FILLED',
+  CONFIRMED = 'CONFIRMED',
+  ACTIVE = 'ACTIVE',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+}
+
+export interface GroupParticipant {
+  id: string;
+  groupBookingId: string;
+  farmerId: string;
+  shareAmount: number;
+  paymentStatus: PaymentStatus;
+  paymentReference?: string | null;
+  joinedAt: string;
+  paidAt?: string | null;
+  notes?: string | null;
+  farmer?: {
+    id: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    email: string;
+    phoneNumber?: string | null;
+    profileImage?: string | null;
+  };
+}
+
+export interface GroupBooking {
+  id: string;
+  equipmentId: string;
+  initiatorId: string;
+  startDate: string;
+  endDate: string;
+  totalDays: number;
+  pricePerDay: number;
+  totalPrice: number;
+  minParticipants: number;
+  maxParticipants: number;
+  status: GroupBookingStatus;
+  isPublic: boolean;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  expiresAt?: string | null;
+  confirmedAt?: string | null;
+  cancelledAt?: string | null;
+  equipment?: Equipment;
+  initiator?: {
+    id: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    email: string;
+    phoneNumber?: string | null;
+  };
+  participants?: GroupParticipant[];
+}
+
+export interface CreateGroupBookingData {
+  equipmentId: string;
+  startDate: string;
+  endDate: string;
+  minParticipants: number;
+  maxParticipants: number;
+  isPublic?: boolean;
+  expiresAt?: string;
+  notes?: string;
+}
+
+export interface JoinGroupBookingData {
   notes?: string;
 }
 
